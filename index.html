@@ -3,33 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070611">
   <title>탈출 : 가위바위보 하나 빼기</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <main class="app">
-    <section class="game-card" aria-live="polite">
-      <header class="game-header">
-        <p class="eyebrow">UNKNOWN ROOM</p>
-        <h1>탈출 : 가위바위보 하나 빼기</h1>
-        <p class="description">
-          정체를 알 수 없는 공간. 출구 앞의 문지기와 대결해 기억 조각을 되찾으세요.
-        </p>
-      </header>
-
-      <section class="status-panel" aria-label="게임 상태">
-        <div>
-          <span>ROUND</span>
-          <strong id="roundText">1</strong>
-        </div>
-        <div>
-          <span>기억 조각</span>
-          <strong id="memoryText">0</strong>
-        </div>
-      </section>
-
-      <section id="gameArea" class="game-area"></section>
-    </section>
+    <section id="scene" class="scene" aria-live="polite"></section>
+    <p class="ai-image-notice">본 게임의 이미지는 생성형 AI를 활용해 제작되었습니다.</p>
   </main>
 
   <script src="js/app.js"></script>
