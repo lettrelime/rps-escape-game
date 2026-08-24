@@ -4,10 +4,36 @@ const hands = [
   { id: "paper", name: "보", emoji: "✋" }
 ];
 
+const TOTAL_ROUNDS = 5;
+const resultNarratives = {
+  win: [
+    "잊고 있던 무언가가 희미하게 떠오른다.",
+    "흩어진 기억들이 조금씩 제자리를 찾아간다.",
+    "익숙한 장면 하나가 머릿속을 스쳐 지나간다.",
+    "잊고 있던 감각이 천천히 되살아나는 것 같다.",
+    "흐릿했던 기억의 윤곽이 조금 선명해진다."
+  ],
+  lose: [
+    "머릿속이 흐려진다.",
+    "중요한 것을 잊어버리는 느낌이다.",
+    "떠오르려던 기억이 다시 어둠 속으로 사라진다.",
+    "방금까지 붙잡고 있던 무언가를 놓친 것 같다.",
+    "익숙했던 감각 하나가 조금씩 멀어진다."
+  ],
+  draw: [
+    "아무것도 떠오르지 않는다.",
+    "기억은 여전히 흐릿한 채다.",
+    "머릿속에는 아무런 변화도 없다.",
+    "무언가 떠오를 듯했지만, 이내 사라진다.",
+    "희미한 감각만 남은 채 아무 일도 일어나지 않는다."
+  ]
+};
+
 const scene = document.getElementById("scene");
 
 let round = 1;
-let memoryPieces = 0;
+let record = { win: 0, draw: 0, lose: 0 };
+let narrativeQueues = {};
 let playerHands = [null, null];
 let guardianHands = [];
 let playerFinalHand = null;
@@ -17,7 +43,8 @@ let gamePhase = "opening";
 
 function initializeGame() {
   round = 1;
-  memoryPieces = 0;
+  record = { win: 0, draw: 0, lose: 0 };
+  narrativeQueues = createNarrativeQueues();
   resetRoundState();
   gamePhase = "opening";
   render();
@@ -53,7 +80,8 @@ function renderOpening() {
           <p>내가 누구인지,<br>왜 여기에 있는지 떠오르지 않는다.</p>
           <p>눈앞에는 커다란 문이 있다.<br>문지기는 나를 바라보고 있다.</p>
           <p class="dialogue">“…….”</p>
-          <p>문지기와 대결해 기억 조각을 되찾고<br>이곳에서 탈출하세요.</p>
+          <p>문지기와 다섯 번의 대결을 펼치고<br>이곳에서 탈출하세요.</p>
+          <p>다섯 번의 대결에서 문지기보다<br>더 많이 승리하면 탈출할 수 있습니다.</p>
         </div>
         <button class="primary-button" type="button" id="startButton">시작하기</button>
       </div>
@@ -88,11 +116,10 @@ function renderGameScene() {
 }
 
 function renderStatusBar() {
-  const score = memoryPieces > 0 ? `+${memoryPieces}` : memoryPieces;
   return `
     <div class="status-bar" aria-label="게임 상태">
-      <div class="status-item"><span>ROUND</span><strong>${round}</strong></div>
-      <div class="status-item"><span>기억 조각</span><strong>${score}</strong></div>
+      <div class="status-item"><span>ROUND</span><strong>${round} / ${TOTAL_ROUNDS}</strong></div>
+      <div class="status-item"><span>현재 전적</span><strong>${formatRecord()}</strong></div>
     </div>
   `;
 }
@@ -169,7 +196,7 @@ function renderHandPanel(title, selectedHands) {
 }
 
 function renderResultSection() {
-  const hasEnding = checkEndingCondition();
+  const isFinalResult = round === TOTAL_ROUNDS;
   return `
     <section>
       <p class="eyebrow">FINAL</p>
@@ -180,11 +207,11 @@ function renderResultSection() {
       </div>
       <div class="result-copy ${lastResult.type}">
         <h2>${lastResult.title}</h2>
-        <p>${lastResult.description}</p>
-        <p class="score-change">${lastResult.scoreText}</p>
-        <p class="memory-message">${getMemoryStatusMessage()}</p>
+        <p class="memory-message">“${lastResult.narrative}”</p>
+        <p class="record-label">현재 전적</p>
+        <p class="score-change">${formatRecord()}</p>
       </div>
-      <button class="primary-button" type="button" id="continueButton">${hasEnding ? "결말 보기" : "다음 대결"}</button>
+      <button class="primary-button" type="button" id="continueButton">${isFinalResult ? "최종 결과 보기" : "다음 대결"}</button>
     </section>
   `;
 }
@@ -200,7 +227,7 @@ function renderFinalHand(title, hand) {
 }
 
 function renderEnding() {
-  const isHappy = memoryPieces >= 3;
+  const isHappy = record.win > record.lose;
   scene.innerHTML = `
     <div class="story-layout">
       <img class="scene-image" src="assets/images/${isHappy ? "happy-ending.png" : "bad-ending.png"}"
@@ -221,7 +248,7 @@ function renderEnding() {
 
 function renderHappyEndingText() {
   return `
-    <p>마지막 기억 조각을 되찾았습니다.</p>
+    <p>다섯 번의 대결이 끝났습니다.</p>
     <p>흩어져 있던 기억이 하나둘 제자리로 돌아옵니다.</p>
     <p>내가 누구인지,<br>왜 이곳에 왔는지도 이제 기억납니다.</p>
     <p>문지기가 당신을 바라보다<br>조용히 출구에서 비켜섭니다.</p>
@@ -232,7 +259,7 @@ function renderHappyEndingText() {
 
 function renderBadEndingText() {
   return `
-    <p>마지막 기억 조각이 사라졌습니다.</p>
+    <p>다섯 번의 대결이 끝났습니다.</p>
     <p>아무것도 기억나지 않습니다.</p>
     <p>문지기가 당신을 한동안 바라봅니다.</p>
     <p>그리고—</p>
@@ -298,9 +325,8 @@ function selectFinalHand(playerHandIndex) {
 
 function resolveRound() {
   const resultType = judgeWinner(playerFinalHand, guardianFinalHand);
-  const scoreChange = getScoreChange(resultType);
 
-  memoryPieces += scoreChange;
+  record[resultType] += 1;
   lastResult = createResultMessage(resultType);
   gamePhase = "result";
   render();
@@ -320,63 +346,16 @@ function judgeWinner(playerHand, guardianHand) {
   return winMap[playerHand.id] === guardianHand.id ? "win" : "lose";
 }
 
-function getScoreChange(resultType) {
-  if (resultType === "win") {
-    return 1;
-  }
-
-  if (resultType === "lose") {
-    return -1;
-  }
-
-  return 0;
-}
-
 function createResultMessage(resultType) {
-  if (resultType === "win") {
-    return {
-      type: "win",
-      title: "승리",
-      description: "기억 조각을 하나 되찾았습니다.",
-      scoreText: "기억 조각 +1"
-    };
-  }
-
-  if (resultType === "lose") {
-    return {
-      type: "lose",
-      title: "패배",
-      description: "기억 조각을 하나 잃었습니다.",
-      scoreText: "기억 조각 -1"
-    };
-  }
-
   return {
-    type: "draw",
-    title: "무승부",
-    description: "아무 일도 일어나지 않았습니다.",
-    scoreText: "기억 조각에는 변화가 없습니다."
+    type: resultType,
+    title: { win: "승리", draw: "무승부", lose: "패배" }[resultType],
+    narrative: narrativeQueues[resultType].shift()
   };
-}
-
-function getMemoryStatusMessage() {
-  const messages = {
-    2: "흩어진 기억들이 조금씩 제자리를 찾아간다. 출구 너머에서 희미한 빛이 새어 나온다.",
-    1: "잊고 있던 무언가가 희미하게 떠오른다.",
-    0: "아무것도 떠오르지 않는다.",
-    "-1": "머릿속이 흐려진다.",
-    "-2": "중요한 것을 잊어버리는 느낌이다."
-  };
-
-  return messages[memoryPieces] || "";
-}
-
-function checkEndingCondition() {
-  return memoryPieces >= 3 || memoryPieces <= -3;
 }
 
 function continueAfterResult() {
-  if (checkEndingCondition()) {
+  if (round === TOTAL_ROUNDS) {
     gamePhase = "ending";
   } else {
     prepareNextRound();
@@ -391,6 +370,27 @@ function prepareNextRound() {
   resetRoundState();
   gamePhase = "select";
   render();
+}
+
+function formatRecord() {
+  return `${record.win}승 ${record.draw}무 ${record.lose}패`;
+}
+
+function createNarrativeQueues() {
+  return {
+    win: shuffleArray([...resultNarratives.win]),
+    draw: shuffleArray([...resultNarratives.draw]),
+    lose: shuffleArray([...resultNarratives.lose])
+  };
+}
+
+function shuffleArray(items) {
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
+  }
+
+  return items;
 }
 
 function findHand(handId) {
