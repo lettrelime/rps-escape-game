@@ -413,6 +413,12 @@ h1 {
   font-weight: 800;
 }
 
+.record-label {
+  margin-top: 16px !important;
+  color: var(--muted) !important;
+  font-size: 0.8rem;
+}
+
 .memory-message {
   margin-top: 18px !important;
   padding-top: 16px;

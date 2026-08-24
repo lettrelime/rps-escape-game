@@ -5,27 +5,31 @@ const hands = [
 ];
 
 const TOTAL_ROUNDS = 5;
-const resultNarratives = {
-  win: [
+const recordNarratives = {
+  strongLead: [
+    "흩어졌던 기억들이 하나둘 제자리를 찾아간다.",
+    "흐릿했던 장면들이 점점 선명해지고 있다.",
+    "잊고 있던 나의 모습이 조금씩 떠오르기 시작한다."
+  ],
+  lead: [
     "잊고 있던 무언가가 희미하게 떠오른다.",
-    "흩어진 기억들이 조금씩 제자리를 찾아간다.",
     "익숙한 장면 하나가 머릿속을 스쳐 지나간다.",
-    "잊고 있던 감각이 천천히 되살아나는 것 같다.",
     "흐릿했던 기억의 윤곽이 조금 선명해진다."
   ],
-  lose: [
-    "머릿속이 흐려진다.",
-    "중요한 것을 잊어버리는 느낌이다.",
-    "떠오르려던 기억이 다시 어둠 속으로 사라진다.",
-    "방금까지 붙잡고 있던 무언가를 놓친 것 같다.",
-    "익숙했던 감각 하나가 조금씩 멀어진다."
-  ],
-  draw: [
-    "아무것도 떠오르지 않는다.",
+  tied: [
     "기억은 여전히 흐릿한 채다.",
-    "머릿속에는 아무런 변화도 없다.",
-    "무언가 떠오를 듯했지만, 이내 사라진다.",
-    "희미한 감각만 남은 채 아무 일도 일어나지 않는다."
+    "무언가 떠오를 듯하지만 아직 선명하지 않다.",
+    "희미한 흔적만 머릿속을 맴돈다."
+  ],
+  behind: [
+    "머릿속이 조금씩 흐려진다.",
+    "중요한 것을 잊어버리는 느낌이다.",
+    "방금까지 붙잡고 있던 무언가가 멀어지는 것 같다."
+  ],
+  strongBehind: [
+    "내가 누구였는지조차 점점 희미해지는 것 같다.",
+    "익숙했던 기억들이 하나씩 사라져간다.",
+    "머릿속에 남아 있던 마지막 흔적마저 흐려지고 있다."
   ]
 };
 
@@ -33,7 +37,7 @@ const scene = document.getElementById("scene");
 
 let round = 1;
 let record = { win: 0, draw: 0, lose: 0 };
-let narrativeQueues = {};
+let lastNarrativeByStatus = {};
 let playerHands = [null, null];
 let guardianHands = [];
 let playerFinalHand = null;
@@ -44,7 +48,7 @@ let gamePhase = "opening";
 function initializeGame() {
   round = 1;
   record = { win: 0, draw: 0, lose: 0 };
-  narrativeQueues = createNarrativeQueues();
+  lastNarrativeByStatus = {};
   resetRoundState();
   gamePhase = "opening";
   render();
@@ -350,7 +354,7 @@ function createResultMessage(resultType) {
   return {
     type: resultType,
     title: { win: "승리", draw: "무승부", lose: "패배" }[resultType],
-    narrative: narrativeQueues[resultType].shift()
+    narrative: selectRecordNarrative()
   };
 }
 
@@ -376,21 +380,38 @@ function formatRecord() {
   return `${record.win}승 ${record.draw}무 ${record.lose}패`;
 }
 
-function createNarrativeQueues() {
-  return {
-    win: shuffleArray([...resultNarratives.win]),
-    draw: shuffleArray([...resultNarratives.draw]),
-    lose: shuffleArray([...resultNarratives.lose])
-  };
-}
+function getRecordStatus() {
+  const recordDifference = record.win - record.lose;
 
-function shuffleArray(items) {
-  for (let index = items.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
+  if (recordDifference >= 2) {
+    return "strongLead";
   }
 
-  return items;
+  if (recordDifference === 1) {
+    return "lead";
+  }
+
+  if (recordDifference === -1) {
+    return "behind";
+  }
+
+  if (recordDifference <= -2) {
+    return "strongBehind";
+  }
+
+  return "tied";
+}
+
+function selectRecordNarrative() {
+  const status = getRecordStatus();
+  const availableNarratives = recordNarratives[status].filter(
+    (narrative) => narrative !== lastNarrativeByStatus[status]
+  );
+  const randomIndex = Math.floor(Math.random() * availableNarratives.length);
+  const selectedNarrative = availableNarratives[randomIndex];
+
+  lastNarrativeByStatus[status] = selectedNarrative;
+  return selectedNarrative;
 }
 
 function findHand(handId) {
